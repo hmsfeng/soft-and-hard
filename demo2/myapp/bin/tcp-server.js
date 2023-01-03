@@ -2,7 +2,7 @@
 const net = require('net')
 const PORT = "9003"
 const equipmentArray = []
-const TIMEOUT = 10*1000; // 10秒没接收到数据就断开连接
+const TIMEOUT = 30*1000; // 30秒没接收到数据就断开连接
 const mongodb = require('./mongodb.js')
 const websocket = require('./websocket.js')
 const tcpClient = require('./tcp-client.js')
@@ -11,16 +11,18 @@ const tcpClient = require('./tcp-client.js')
 //创建服务器对象
 const server = net.createServer((socket)=>{
   //connect
-  let addr = socket.address().address + ':' + socket.remotePort
+  let addr = socket.remoteAddress + ':' + socket.remotePort
   console.log(addr," connected.")
 
   // receive data
   socket.on("data",data=>{
-		let str = addr+" receive: " + data.toString('ascii')
-		socket.lastValue = data.toString('ascii')
-		console.log(str)
+	// 将接收到的数据作为最新的数据
+	let str = addr+" --> " + data.toString('ascii')
+	socket.lastValue = data.toString('ascii')
+	console.log(str)
 
-    // 接收的第一条数据为设备id
+    // 如果该socket没有id，就把当前数据赋值为id。
+	// 等效于接收的第一条数据作为其设备id
     if(!socket.id){
 			socket.id = data.toString('ascii')
 			socket.addr = addr
@@ -30,6 +32,7 @@ const server = net.createServer((socket)=>{
 			//保存所接收到的数据
 			mongodb.insert({id:socket.id,data:socket.lastValue},function (err) {
 				if(err){
+					// 保存数据失败只会影响历史数据的呈现。
 					console.log(socket.id,"保存数据失败：",err)
 				}
 			})
@@ -66,10 +69,12 @@ server.on("error",(err)=>{
 
 //开启监听
 server.listen({port: PORT,host: '0.0.0.0'}, () => {
-	console.log('demo1 tcp server running on', server.address())
+	console.log('demo2 TCP服务器 启动：', server.address())
+	
+	// 5秒后启动demo2 tcp client 以生成数据。
 	setTimeout(() => {
 		tcpClient.init()
-	}, 4000);
+	}, 5000);
 })
 
 // 给列表添加设备

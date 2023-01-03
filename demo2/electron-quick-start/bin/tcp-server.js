@@ -27,12 +27,12 @@ ipcMain.on('equipment-action',(event,arg)=>{
 //创建服务器对象
 const server = net.createServer((socket)=>{
   //connect
-  let addr = socket.address().address + ':' + socket.remotePort
+  let addr = socket.remoteAddress + ':' + socket.remotePort
   console.log(addr," connected.")
 
   // receive data
   socket.on("data",data=>{
-		let str = addr+" receive: " + data.toString('ascii')
+		let str = addr+" --> " + data.toString('ascii')
 		socket.lastValue = data.toString('ascii')
 		// console.log(str)
 
